@@ -217,10 +217,12 @@ export default function(hljs) {
         end: '.',
         relevance: 0
     }
+
+    // FIX subparameters parameters like: DCB=(RECFM=FB,LRECL=80,BLKSIZE=2000)
     const PARAMS = {
         className: 'params',
         keywords: DD_PARMS,
-        begin: '[0-9a-zA-Z.]*=&?[0-9a-zA-Z.]*',
+        begin: /[0-9a-zA-Z.]*=/,
         end: '[,]?',
         contains: [
             {
@@ -228,14 +230,21 @@ export default function(hljs) {
                 begin: /\(/,
                 end: /\)/,
                 contains: [ "self" ]
+            },
+            {
+                className: 'values',
+                begin: /[&]?[0-9a-zA-Z.\*]+/,
+                end: ''
             }
         ],
         relevance: 0
     };
+
+    // FIX not recognized
     const CONT_STMT = {
         className: 'continuation',
-        begin: '\/\/[\ ]+',
-        end: '',
+        begin: /\/\/\s+(.*)\b/,
+        end: /$/,
         contains: [
             PARAMS
         ],
@@ -249,10 +258,10 @@ export default function(hljs) {
         end: ''
     };
 
-    // FIX multiline stmt
+    // FIX multiline stmt (see CONT_STMT)
     const JOB_STMT = {
         className: 'JOB statement',
-        begin: '\/\/[a-zA-Z0-9\$\#\@][a-zA-Z0-9\$\#\@\s]{1,7}? JOB',
+        begin: /\/\/[a-zA-Z0-9\$\#\@][a-zA-Z0-9\$\#\@\s]{1,7}? JOB/,
         end: '',
         contains: [
             /*JCL_STEP*/
@@ -262,11 +271,10 @@ export default function(hljs) {
         relevance: 10
     };
 
-
-    // FIX Multiline DD
+    // FIX Multiline DD (see CONT_STMT)
     const DD_CARD = {
         className: 'DD card',
-        begin: '\/\/[A-Z0-9\$\#\@][A-Z0-9\ \$\#\@]{1,7}? DD ',
+        begin: /\/\/[A-Z0-9\$\#\@][A-Z0-9\ \$\#\@]{1,7}? DD /,
         end: /$/,
         contains: [
             PARAMS,
@@ -275,20 +283,24 @@ export default function(hljs) {
         relevance: 0
     };
     const JCL_STEP = {
-        className: 'JOB step',
-        begin: '\/\/[A-Z0-9\$\#\@][A-Z0-9\$\#\@\ ]{1,7}? ',
-        end: '/$/',
+        className: 'JCL step',
+        variants: [
+            { begin: /\/\/[A-Z0-9\$\#\@][A-Z0-9\$\#\@\ ]{1,7}? EXEC/ },
+            { begin: /\/\/[A-Z0-9\$\#\@][A-Z0-9\$\#\@\ ]{1,7}? PROC/ }
+        ],
+        end: /$/,
         keywords: { keyword: 'EXEC PROC' },
         contains: [
-            DD_CARD,
-            { endsWithParent: true }
+            DD_CARD
+            /*,
+            { endsWithParent: true }*/
         ]
     };
 
     // FIX Unrecognized directive
     const OPC_DIRECTIVE = {
         className: 'OPC directive',
-        begin: '\/\/\*%OPC',
+        begin: /\/\/\*%OPC/,
         end: '',
         keywords: { OPC_KEYWORDS },
         contains: [
@@ -306,7 +318,7 @@ export default function(hljs) {
     // FIX Unrecognized directive
     const OPC_PDIRECTIVE = {
         className: 'OPC processed directive',
-        begin: '\/\/\>\%OPC',
+        begin: /\/\/\>\%OPC/,
         relevance: 0
     }
 
@@ -320,9 +332,11 @@ export default function(hljs) {
         },
         contains: [
             JOB_STMT,
+            JCL_STEP,
+            DD_CARD,
+            CONT_STMT,
             OPC_DIRECTIVE,
             OPC_PDIRECTIVE,
-            DD_CARD,
             VARIABLES,
             PARAMS,
             hljs.COMMENT('\\/\\/\\*[^%+](.*)', '', { relevance: 0 }),
